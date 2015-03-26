@@ -11,15 +11,80 @@
 
 using namespace std;
 
+void menu_func(int value);
+void help();
+
 // window width/height
 int windowWidth=500;
 int windowHeight=500;
+
+bool ambient = false;
+bool point = false;
+
 
 // camera rotation parameters
 float phi=0;
 float theta=.5;
 
+enum{
+    OPTIONS_AMBIENT,
+    OPTIONS_POINT,
+    OPTIONS_HELP
+};
 
+
+
+void menu_func(int value){
+    switch (value) {
+        case OPTIONS_AMBIENT:
+            ambient = !ambient;
+            break;
+        
+        case OPTIONS_POINT:
+            point = !point;
+            break;
+            
+        case OPTIONS_HELP:
+            help();
+            break;
+            
+        default:
+            break;
+    }
+    
+    glutPostRedisplay();
+}
+
+int make_menu(){
+    
+    int main = glutCreateMenu(menu_func);
+    glutAddMenuEntry("Toggle Ambient Ligting", OPTIONS_AMBIENT);
+    glutAddMenuEntry("Toggle Point Lighting", OPTIONS_POINT);
+    glutAddMenuEntry("Help", OPTIONS_HELP);
+    
+    glutAttachMenu(GLUT_RIGHT_BUTTON);
+    
+    return main;
+}
+
+void help()
+{
+
+    cerr << "OpenGL\n\
+    \n\
+    action                result\n\
+    ------                ------\n\
+    left mouse            rotate view left-right and up-down\n\
+    w                     move camera in positive y-direction\n\
+    s                     move camera in negative y-direction\n\
+    d                     move camera in positive x-direction\n\
+    a                     move camera in negative x-direction\n\
+    j                     move camera in positive z-direction\n\
+    k                     move camera in negative z-direction\n\
+    \n\
+    "
+        << endl;
+}
 
 void init(void)
 {
@@ -29,6 +94,18 @@ void init(void)
     gluPerspective(80,1, 1, 200);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
+    
+    glEnable(GL_LIGHT0);
+    glEnable(GL_LIGHTING);
+    
+    GLfloat lightPosition[] = {1,1,1,1};
+    glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
+    
+    //set light color
+    GLfloat white[] {1,1,1,0};
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, white);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, white);
+    
     
     // clear colors
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -61,6 +138,10 @@ void motion(int x, int y) {
     glutPostRedisplay();
 }
 
+
+
+
+
 void mouse(int button, int state, int x, int y) {
     if (button==GLUT_LEFT_BUTTON && state==GLUT_DOWN) {
         motion(-1,-1);
@@ -69,6 +150,8 @@ void mouse(int button, int state, int x, int y) {
 
 void arrow_keys ( int a_keys, int x, int y )
 {
+    
+    
     switch ( a_keys ) {
         case GLUT_KEY_UP:
             glutFullScreen ( );
@@ -122,25 +205,25 @@ void display( void )
     int numCheckers = 10;
     double checkerWidth = 30;
     double checkerHeight = 30;
-    double offsetX = windowWidth/2;
-    double offsetY = windowHeight/2;
+    double offsetX = (numCheckers*checkerWidth)/2;
+    double offsetY = (numCheckers*checkerHeight)/2;
     
     
     for(int i = 0; i< numCheckers; i++){
         for(int j = 0; j <numCheckers; j++){
             
             if((i+j)%2 == 0){
-                //                glMaterialfv(GL_FRONT, GL_DIFFUSE, black);
-                //                glMaterialfv(GL_FRONT, GL_SPECULAR, black);
-                //                glMateriali(GL_FRONT,GL_SHININESS,0);
-                glColor3f(0,0,0);
+                glMaterialfv(GL_FRONT, GL_DIFFUSE, black);
+                glMaterialfv(GL_FRONT, GL_SPECULAR, black);
+                glMateriali(GL_FRONT,GL_SHININESS,0);
+//                glColor3f(0,0,0);
                 
             }
             else{
-                //                glMaterialfv(GL_FRONT, GL_DIFFUSE, white);
-                //                glMaterialfv(GL_FRONT, GL_SPECULAR, white);
-                //                glMateriali(GL_FRONT,GL_SHININESS,0);
-                glColor3f(1,1,1);
+                glMaterialfv(GL_FRONT, GL_DIFFUSE, white);
+                glMaterialfv(GL_FRONT, GL_SPECULAR, white);
+                glMateriali(GL_FRONT,GL_SHININESS,0);
+//                glColor3f(1,1,1);
             }
             
             glBegin(GL_QUADS);
@@ -157,11 +240,11 @@ void display( void )
     
     
     // draw a red triangle
-    //    glMaterialfv(GL_FRONT, GL_DIFFUSE, red);
-    //    glMaterialfv(GL_FRONT, GL_SPECULAR, red);
-    //    glMateriali(GL_FRONT,GL_SHININESS,0);
+        glMaterialfv(GL_FRONT, GL_DIFFUSE, red);
+        glMaterialfv(GL_FRONT, GL_SPECULAR, red);
+        glMateriali(GL_FRONT,GL_SHININESS,0);
     
-    glColor3f(0, 0, 1);
+//    glColor3f(0, 0, 1);
     
     glBegin(GL_TRIANGLES);
     glVertex3f(-3,1,-8);
@@ -172,12 +255,12 @@ void display( void )
     glNormal3f(0,1,0);
     
     
-    // draw a red triangle
-    //    glMaterialfv(GL_FRONT, GL_DIFFUSE, red);
-    //    glMaterialfv(GL_FRONT, GL_SPECULAR, red);
-    //    glMateriali(GL_FRONT,GL_SHININESS,0);
+    // draw a green triangle
+        glMaterialfv(GL_FRONT, GL_DIFFUSE, green);
+        glMaterialfv(GL_FRONT, GL_SPECULAR, green);
+        glMateriali(GL_FRONT,GL_SHININESS,0);
     
-    glColor3f(0.1, 0.3, 0.2);
+//    glColor3f(0.1, 0.3, 0.2);
     
     glBegin(GL_TRIANGLES);
     glVertex3f(-10,1,-3);
@@ -186,13 +269,15 @@ void display( void )
     glEnd();
     
     // draw Sphere
-    //    glMaterialfv(GL_FRONT, GL_DIFFUSE, purple);
-    //    glMaterialfv(GL_FRONT, GL_SPECULAR, purple);
-    //    glMateriali(GL_FRONT,GL_SHININESS,50);
-    glColor3f(0.6, 0.2, 0.8);
+        glMaterialfv(GL_FRONT, GL_DIFFUSE, purple);
+        glMaterialfv(GL_FRONT, GL_SPECULAR, purple);
+        glMateriali(GL_FRONT,GL_SHININESS,50);
+//    glColor3f(0.6, 0.2, 0.8);
     
+    glPushMatrix();
+    glTranslatef(0, 5, 0);
     glutSolidSphere(2,100,100);
-    
+    glPopMatrix();
     
     glPopMatrix();
     glutSwapBuffers();
@@ -206,7 +291,8 @@ int main ( int argc, char** argv )
     glutInitDisplayMode ( GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA | GLUT_STENCIL ); // Display Mode
     glutInitWindowPosition(0,0);
     glutInitWindowSize(windowWidth, windowHeight);
-    glutCreateWindow("Odds & ends tutorial");
+    glutCreateWindow("OpenGL Project");
+    make_menu();
     init ();
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
