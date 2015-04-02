@@ -25,6 +25,11 @@ float headRot = 0;
 float headShake = 0;
 float robotX = 0;
 float robotY = 0;
+float trunk1Rot = 0;
+float trunk2Rot = 0;
+float trunk3Rot = 0;
+
+
 
 bool ambient = true;
 bool point = true;
@@ -113,6 +118,8 @@ void help()
     k                     zoom out\n\
     y/u                   nod head\n\
     o/p                   shake head\n\
+    i/k                   move robot in +/- x direction\n\
+    j/l                   move robot in +/- y direction\n\
     \n\
     "
         << endl;
@@ -259,6 +266,25 @@ void keyboard(unsigned char key, int x, int y){
             break;
         case 'l':
             --robotX;
+            break;
+        case 'b':
+            --trunk1Rot;
+            break;
+        case 'B':
+            ++trunk1Rot;
+            break;
+        case 'n':
+            --trunk2Rot;
+            break;
+        case 'N':
+            ++trunk2Rot;
+            break;
+        case 'm':
+            --trunk3Rot;
+            break;
+        case 'M':
+            ++trunk3Rot;
+            break;
         default:
             break;
     }
@@ -404,22 +430,36 @@ void display( void )
     
     //draw trunk Shoulder
     glPushMatrix();
-    glTranslatef(0, 0, 1.5);
+    
+    //1.5
+    glTranslatef(0, 0, 1);
+    glRotatef(trunk1Rot, 1, 0, 0);
+    glTranslatef(0, 0, .5);
     glScalef(.2, .2, .8);
     drawCube();
     
+
     //draw trunk forearm
     glPushMatrix();
+    
+    //1
     glTranslatef(0, 0, 1);
+    glRotatef(trunk2Rot, 1, 0, 0);
+
+    glPushMatrix();
     glScalef(.8, .8, 1);
     drawCube();
+    glPopMatrix();
+
     
     
     //draw trunk hand
     glPushMatrix();
     glTranslatef(0, -1.2, 1.1);
+    glPushMatrix();
     glScalef(.8, 2.5, .1);
     drawCube();
+    glPopMatrix();
     glPopMatrix();
     
     glPopMatrix();
