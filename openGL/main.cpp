@@ -30,7 +30,8 @@ float trunk2Rot = 0;
 float trunk3Rot = 0;
 
 
-
+bool lamp = false;
+bool roboView = false;
 bool ambient = true;
 bool point = true;
 void drawCube();
@@ -120,6 +121,11 @@ void help()
     o/p                   shake head\n\
     i/k                   move robot in +/- x direction\n\
     j/l                   move robot in +/- y direction\n\
+    b/B                   move trunk at the shoulder\n\
+    n/N                   move trunk at elbow\n\
+    m/M                   move trunk at wrist\n\
+    v                     toggle on/off the robo-lamp\n\
+    c                     switch to 1st/3rd person view\n\
     \n\
     "
         << endl;
@@ -135,29 +141,34 @@ void init(void)
     glLoadIdentity();
     
     glEnable(GL_LIGHT0);
+    if (lamp) {
+        glEnable(GL_LIGHT2);
+    }
+    else{
+        glDisable(GL_LIGHT2);
+    }
     glEnable(GL_LIGHTING);
     
     GLfloat lightAmbient[] = {.2,.2,.2,1};
     
     GLfloat lightPosition[] = {0,8,0,1};
-    
+    GLfloat white[] {1,1,1,0};
+    GLfloat yellow[] {1,1,0,0};
     
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lightAmbient);
-    //set light color
-    GLfloat white[] {1,1,1,0};
-//    if(ambient){
-//        glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);
-//    }
-    
-//    if (point) {
-        glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
-        glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, .03);
-        glLightfv(GL_LIGHT0, GL_DIFFUSE, white);
-        glLightfv(GL_LIGHT0, GL_SPECULAR, white);
+    //set Point light info
+
+    glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
+    glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, .03);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, white);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, white);
+
+//    //set spot light info
+//    glLightf(GL_LIGHT2, GL_LINEAR_ATTENUATION, .03);
+//    glLightfv(GL_LIGHT2, GL_DIFFUSE, yellow);
+//    glLightfv(GL_LIGHT2, GL_SPECULAR, yellow);
 
 
-    
-    
     // clear colors
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     
@@ -249,10 +260,10 @@ void keyboard(unsigned char key, int x, int y){
         case 'u':
             ++headRot;
             break;
-        case 'o':
+        case 'p':
             --headShake;
             break;
-        case 'p':
+        case 'o':
             ++headShake;
             break;
         case 'i':
@@ -285,11 +296,23 @@ void keyboard(unsigned char key, int x, int y){
         case 'M':
             ++trunk3Rot;
             break;
+        case 'v':
+            if (lamp) {
+                glDisable(GL_LIGHT2);
+            }
+            else{
+                glEnable(GL_LIGHT2);
+            }
+            
+            lamp = !lamp;
+            break;
+        case 'c':
+            roboView = !roboView;
+            break;
         default:
             break;
     }
     glutPostRedisplay();
-
 }
 
 void reshape(int width, int height)
@@ -321,11 +344,47 @@ void display( void )
     double zoomZ = zoom * transZ+z;
     
     
-    gluLookAt(transX,10+transY,15+transZ,transX+x,transY+y,transZ-z,0,1,0);
+    double scale =3.0;
+    
+    if (!roboView) {
+        gluLookAt(transX,10+transY,15+transZ,transX+x,transY+y,transZ-z,0,1,0);
+    }
+//    positions:0,18,3
+//    lookat0,18,6
+//    up0,21,3
+    if (roboView) {
+        double theta = headShake*M_PI/180;
+        double phi = (90 -(headRot-25))*M_PI/180;
+        GLdouble camr = 1*scale;
+        GLdouble viewr = 2*scale;
+        
+        
+//        GLdouble camx = (robotX*scale) + camr*(sin(theta)*sin(phi));
+//        GLdouble camy = 5*scale - (camr*sin(phi));
+//        GLdouble camz = (robotY*scale) + (camr*cos(theta)*cos(phi));
+//        GLdouble viewx = (robotX*scale) + viewr*sin(theta)*cos(phi);
+//        GLdouble viewy = 5*scale-(viewr*sin(phi));
+//        GLdouble viewz = (robotY*scale) + (viewr*cos(theta)*cos(phi));
+
+        GLdouble camx = (robotX*scale) + camr*(sin(phi)*sin(theta));
+        GLdouble camy = 5*scale - (camr*cos(phi));
+        GLdouble camz = (robotY*scale) + (camr*cos(theta)*sin(phi));
+        GLdouble viewx = (robotX*scale) + viewr*sin(theta)*sin(phi);
+        GLdouble viewy = 5*scale-(viewr*cos(phi));
+        GLdouble viewz = (robotY*scale) + (viewr*cos(theta)*sin(phi));
+        
+                cerr<<"positions:"<<camx<<','<<camy<<','<<camz<<endl;
+                cerr<<"lookat"<<viewx<<','<<viewy<<','<<viewz<<endl;
+                //cerr<<"up"<<up_x<<','<<up_y<<','<<up_z<<endl;
+        
+        gluLookAt(camx, camy, camz,
+                  viewx, viewy, viewz,
+                  0, 1, 0);
+    }
+    
     glPushMatrix();
     
     float size=20;
-    
     GLfloat white[] = {1,1,1,0};
     GLfloat black[] = {0,0,0,0};
     GLfloat red[] = {1,0,0,0};              // red
@@ -370,7 +429,7 @@ void display( void )
     }
     
     glPushMatrix();
-    glScalef(3, 3, 3);
+    glScalef(scale, scale, scale);
     glTranslatef(robotX, 0, robotY);
     
     //body
@@ -426,6 +485,45 @@ void display( void )
     glTranslatef(.5, .2, .8);
     glutSolidSphere(.1, 20, 30);
     glPopMatrix();
+    
+    //Robot viewpoint
+
+    
+    
+    
+    //Create Light
+    if (lamp) {
+        glPushMatrix();
+        GLfloat yellow[] {1,1,0,0};
+        //set spot light info
+        glLightf(GL_LIGHT2, GL_LINEAR_ATTENUATION, .1);
+        glLightfv(GL_LIGHT2, GL_DIFFUSE, green);
+        glLightfv(GL_LIGHT2, GL_SPECULAR, green);
+        GLfloat spot_direction[] = {0,0,1};
+        GLfloat spot_position[] = {0, 0, 0,1};
+        glTranslatef(0, .8, .7);
+        glLightfv(GL_LIGHT2, GL_POSITION, spot_position);
+        glLightfv(GL_LIGHT2, GL_SPOT_DIRECTION, spot_direction);
+        glLightf(GL_LIGHT2, GL_SPOT_CUTOFF, 30.0);
+        glColor3f(0, 1, 0);
+        glPushAttrib(GL_LIGHTING_BIT);
+        glDisable(GL_LIGHTING);
+        glutSolidSphere(.1, 20, 20);
+        glEnable(GL_LIGHTING);
+        glPopAttrib();
+
+        glPopMatrix();
+    }
+    if (!lamp) {
+        glPushMatrix();
+        glTranslatef(0, .8, .7);
+        glMaterialfv(GL_FRONT, GL_AMBIENT, black);
+        glMaterialfv(GL_FRONT, GL_DIFFUSE, black);
+        glMaterialfv(GL_FRONT, GL_SPECULAR, black);
+        glMateriali(GL_FRONT,GL_SHININESS,0);
+        glutSolidSphere(.1, 20, 20);
+        glPopMatrix();
+    }
     
     
     //draw trunk Shoulder
