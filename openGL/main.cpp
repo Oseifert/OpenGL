@@ -7,6 +7,13 @@
 #include <OpenGL/glu.h>
 #include <glut/glut.h>
 #include <math.h>
+#include "SOIL.h"
+
+#define MAX_NO_TEXTURES 1
+#define MAX_FILE_NAME 512
+//
+char textureFileNameWithPath[MAX_FILE_NAME];
+GLuint textureIds[MAX_NO_TEXTURES];
 
 
 using namespace std;
@@ -31,13 +38,14 @@ float trunk3Rot = 0;
 float numSamples = 10;
 float coasterPosition = 0;
 
-
-
+bool fog = false;
+bool coasterView = false;
 bool lamp = false;
 bool roboView = false;
 bool ambient = true;
 bool point = true;
 void drawCube();
+bool LoadGLTextures(char* fname);
 
 // camera rotation parameters
 float phi=0;
@@ -46,7 +54,8 @@ float theta=.5;
 enum{
     OPTIONS_AMBIENT,
     OPTIONS_POINT,
-    OPTIONS_HELP
+    OPTIONS_HELP,
+    OPTIONS_FOG
 };
 
 
@@ -81,6 +90,16 @@ void menu_func(int value){
             point = !point;
             break;
             
+        case OPTIONS_FOG:
+            if (fog) {
+                glDisable(GL_FOG);
+            }
+            else{
+                glEnable(GL_FOG);
+            }
+            fog = !fog;
+            break;
+            
         case OPTIONS_HELP:
             help();
             break;
@@ -97,6 +116,7 @@ int make_menu(){
     int main = glutCreateMenu(menu_func);
     glutAddMenuEntry("Toggle Ambient Ligting", OPTIONS_AMBIENT);
     glutAddMenuEntry("Toggle Point Lighting", OPTIONS_POINT);
+    glutAddMenuEntry("Toggle Fog", OPTIONS_FOG);
     glutAddMenuEntry("Help", OPTIONS_HELP);
     
     glutAttachMenu(GLUT_RIGHT_BUTTON);
@@ -144,6 +164,11 @@ void init(void)
     glLoadIdentity();
     
     glEnable(GL_LIGHT0);
+    if (fog) {
+        glEnable(GL_FOG);
+        glClearColor(.5f, .5f, .5f, 1);
+    }
+    
     if (lamp) {
         glEnable(GL_LIGHT2);
     }
@@ -166,12 +191,10 @@ void init(void)
     glLightfv(GL_LIGHT0, GL_DIFFUSE, white);
     glLightfv(GL_LIGHT0, GL_SPECULAR, white);
 
-//    //set spot light info
-//    glLightf(GL_LIGHT2, GL_LINEAR_ATTENUATION, .03);
-//    glLightfv(GL_LIGHT2, GL_DIFFUSE, yellow);
-//    glLightfv(GL_LIGHT2, GL_SPECULAR, yellow);
+    LoadGLTextures("/Users/jarthur/Desktop/project2/openGL/OpenGL/openGL/GL-Symbol-9.png");
 
 
+    
     // clear colors
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     
@@ -312,6 +335,11 @@ void keyboard(unsigned char key, int x, int y){
         case 'c':
             roboView = !roboView;
             break;
+        case 'r':
+            coasterView = !coasterView;
+            break;
+        case 't':
+            coasterPosition+=.05;
         default:
             break;
     }
@@ -565,7 +593,9 @@ void drawRobot(){
     //body
     glPushMatrix();
     glTranslatef(0, 3, 0);
+    glEnable(GL_TEXTURE_2D);
     drawCube();
+    glDisable(GL_TEXTURE_2D);
     glPopMatrix();
     
     //left leg
@@ -677,12 +707,9 @@ void coasterCam(int startPoint){
     
     /*  approximate the curve by a line strip through sample points	*/
     //    glColor3f(1, 1, 0);
-
-
-
     float val[3];
-    float t=coasterPosition;
-    float e = 1;
+    float t=coasterPosition- int(coasterPosition);
+    float e = .1;
         /* TODO: compute X(t), Y(t), and Z(T) and create openGL vertex */
     float polyVal[3];
     float lookVal[3];
@@ -690,6 +717,7 @@ void coasterCam(int startPoint){
         polyVal[i] = coeff[i][0]*t*t*t + coeff[i][1]*t*t + coeff[i][2]*t + coeff[i][3];
         lookVal[i] = 3 *coeff[i][0]*(t+e)*(t+e) + 2*coeff[i][1]*(t+e) + coeff[i][2];
     }
+
     gluLookAt(polyVal[0], polyVal[1], polyVal[2],
               lookVal[0], lookVal[1], lookVal[2],
               0, 1, 0);
@@ -700,6 +728,30 @@ void coasterCam(int startPoint){
     /* because the increment 1.0/numSamples  has finite precision	*/
     /* t probably won't hit 1.0 exactly, so we force it			*/
 
+}
+
+void drawFog(){
+    GLfloat fogColor[] = {.5f, .5f,.5f,1};
+    glFogfv(GL_FOG_COLOR, fogColor);
+    glFogi(GL_FOG_MODE, GL_LINEAR);
+    glFogf(GL_FOG_START,10.0f);
+    glFogf(GL_FOG_END,20.0f);
+    
+    
+}
+
+
+bool LoadGLTextures(char* fname)
+{
+    int textureId = SOIL_load_OGL_texture(fname, SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_INVERT_Y);
+    if(textureId == 0)
+        return false;
+    
+    glBindTexture(GL_TEXTURE_2D, textureId);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+    return true;
 }
 
 
@@ -717,13 +769,24 @@ void display( void )
     // reset modelview matrix for viewpoint (0,0,5) and save
     glLoadIdentity();
     
-    initCamera();
+    if (!coasterView) {
+        initCamera();
+    }
+    else{
+        coasterCam((3*coasterPosition));
+    }
     
     glColor3f(1, 1, 0);
     for (int i=0; i<numPoints; ++i) {
         drawCurve(3*i);
     }
 
+    if (fog) {
+        drawFog();
+    }
+    else{
+        glDisable(GL_FOG);
+    }
     
     glPushMatrix();
     
