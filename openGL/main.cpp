@@ -28,6 +28,9 @@ float robotY = 0;
 float trunk1Rot = 0;
 float trunk2Rot = 0;
 float trunk3Rot = 0;
+float numSamples = 10;
+float coasterPosition = 0;
+
 
 
 bool lamp = false;
@@ -323,66 +326,8 @@ void reshape(int width, int height)
     glViewport(0,0,size,size);
 }
 
-void display( void )
-{
-    GLenum glErr = glGetError();
-    if (glErr != GL_NO_ERROR){
-        cout << "glError: " << gluErrorString(glErr) << endl;
-    }
-    
-    
-    // clear buffers
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-    
-    // reset modelview matrix for viewpoint (0,0,5) and save
-    glLoadIdentity();
-    double x = 15.0*sin(phi);
-    double y = 15*sin(theta);
-    double z = 15.0*cos(phi);
-    double zoomX = zoom * transX+x;
-    double zoomY = zoom * transY+y;
-    double zoomZ = zoom * transZ+z;
-    
-    
-    double scale =3.0;
-    
-    if (!roboView) {
-        gluLookAt(transX,10+transY,15+transZ,transX+x,transY+y,transZ-z,0,1,0);
-    }
-//    positions:0,18,3
-//    lookat0,18,6
-//    up0,21,3
-    if (roboView) {
-        double theta = headShake*M_PI/180;
-        double phi = (90 -(headRot-25))*M_PI/180;
-        GLdouble camr = 1*scale;
-        GLdouble viewr = 2*scale;
-        
-        
-//        GLdouble camx = (robotX*scale) + camr*(sin(theta)*sin(phi));
-//        GLdouble camy = 5*scale - (camr*sin(phi));
-//        GLdouble camz = (robotY*scale) + (camr*cos(theta)*cos(phi));
-//        GLdouble viewx = (robotX*scale) + viewr*sin(theta)*cos(phi);
-//        GLdouble viewy = 5*scale-(viewr*sin(phi));
-//        GLdouble viewz = (robotY*scale) + (viewr*cos(theta)*cos(phi));
 
-        GLdouble camx = (robotX*scale) + camr*(sin(phi)*sin(theta));
-        GLdouble camy = 5*scale - (camr*cos(phi));
-        GLdouble camz = (robotY*scale) + (camr*cos(theta)*sin(phi));
-        GLdouble viewx = (robotX*scale) + viewr*sin(theta)*sin(phi);
-        GLdouble viewy = 5*scale-(viewr*cos(phi));
-        GLdouble viewz = (robotY*scale) + (viewr*cos(theta)*sin(phi));
-        
-                cerr<<"positions:"<<camx<<','<<camy<<','<<camz<<endl;
-                cerr<<"lookat"<<viewx<<','<<viewy<<','<<viewz<<endl;
-                //cerr<<"up"<<up_x<<','<<up_y<<','<<up_z<<endl;
-        
-        gluLookAt(camx, camy, camz,
-                  viewx, viewy, viewz,
-                  0, 1, 0);
-    }
-    
-    glPushMatrix();
+void drawFloor(){
     
     float size=20;
     GLfloat white[] = {1,1,1,0};
@@ -406,7 +351,7 @@ void display( void )
                 glMaterialfv(GL_FRONT, GL_DIFFUSE, black);
                 glMaterialfv(GL_FRONT, GL_SPECULAR, black);
                 glMateriali(GL_FRONT,GL_SHININESS,0);
-//                glColor3f(0,0,0);
+                //                glColor3f(0,0,0);
                 
             }
             else{
@@ -414,7 +359,7 @@ void display( void )
                 glMaterialfv(GL_FRONT, GL_DIFFUSE, white);
                 glMaterialfv(GL_FRONT, GL_SPECULAR, white);
                 glMateriali(GL_FRONT,GL_SHININESS,0);
-//                glColor3f(1,1,1);
+                //                glColor3f(1,1,1);
             }
             
             glBegin(GL_QUADS);
@@ -427,32 +372,100 @@ void display( void )
         }
         
     }
+
+}
+
+void initCamera(){
+    double x = 15.0*sin(phi);
+    double y = 15*sin(theta);
+    double z = 15.0*cos(phi);
+    double zoomX = zoom * transX+x;
+    double zoomY = zoom * transY+y;
+    double zoomZ = zoom * transZ+z;
     
-    glPushMatrix();
-    glScalef(scale, scale, scale);
-    glTranslatef(robotX, 0, robotY);
     
-    //body
-    glPushMatrix();
-    glTranslatef(0, 3, 0);
-    drawCube();
-    glPopMatrix();
+    double scale =3.0;
     
-    //left leg
-    glPushMatrix();
-    glTranslatef(-.5, 1, 0);
-    glScalef(.3, 1, .3);
-    drawCube();
-    glPopMatrix();
+    if (!roboView) {
+        gluLookAt(transX,10+transY,15+transZ,transX+x,transY+y,transZ-z,0,1,0);
+    }
     
-    // Right leg
-    glPushMatrix();
-    glTranslatef(.5, 1, 0);
-    glScalef(.3, 1, .3);
-    drawCube();
-    glPopMatrix();
     
-    // Head Assembly
+    if (roboView) {
+        double theta = headShake*M_PI/180;
+        double phi = (90 -(headRot-25))*M_PI/180;
+        GLdouble camr = 1*scale;
+        GLdouble viewr = 2*scale;
+        
+        
+        GLdouble camx = (robotX*scale) + camr*(sin(phi)*sin(theta));
+        GLdouble camy = 5*scale - (camr*cos(phi));
+        GLdouble camz = (robotY*scale) + (camr*cos(theta)*sin(phi));
+        GLdouble viewx = (robotX*scale) + viewr*sin(theta)*sin(phi);
+        GLdouble viewy = 5*scale-(viewr*cos(phi));
+        GLdouble viewz = (robotY*scale) + (viewr*cos(theta)*sin(phi));
+        
+        gluLookAt(camx, camy, camz,
+                  viewx, viewy, viewz,
+                  0, 1, 0);
+    }
+}
+
+
+void createLamp(){
+    float size=20;
+    GLfloat white[] = {1,1,1,0};
+    GLfloat black[] = {0,0,0,0};
+    GLfloat red[] = {1,0,0,0};              // red
+    GLfloat green[] = {0,1,0,0};             // green
+    GLfloat purple[] = {1,0,1,0};	    // purple
+    double scale = 3.0;
+    
+    //Create Light
+    if (lamp) {
+        glPushMatrix();
+        GLfloat yellow[] {1,1,0,0};
+        //set spot light info
+        glLightf(GL_LIGHT2, GL_LINEAR_ATTENUATION, .1);
+        glLightfv(GL_LIGHT2, GL_DIFFUSE, green);
+        glLightfv(GL_LIGHT2, GL_SPECULAR, green);
+        GLfloat spot_direction[] = {0,0,1};
+        GLfloat spot_position[] = {0, 0, 0,1};
+        glTranslatef(0, .8, .7);
+        glLightfv(GL_LIGHT2, GL_POSITION, spot_position);
+        glLightfv(GL_LIGHT2, GL_SPOT_DIRECTION, spot_direction);
+        glLightf(GL_LIGHT2, GL_SPOT_CUTOFF, 30.0);
+        glColor3f(0, 1, 0);
+        glPushAttrib(GL_LIGHTING_BIT);
+        glDisable(GL_LIGHTING);
+        glutSolidSphere(.1, 20, 20);
+        glEnable(GL_LIGHTING);
+        glPopAttrib();
+        
+        glPopMatrix();
+    }
+    if (!lamp) {
+        glPushMatrix();
+        glTranslatef(0, .8, .7);
+        glMaterialfv(GL_FRONT, GL_AMBIENT, black);
+        glMaterialfv(GL_FRONT, GL_DIFFUSE, black);
+        glMaterialfv(GL_FRONT, GL_SPECULAR, black);
+        glMateriali(GL_FRONT,GL_SHININESS,0);
+        glutSolidSphere(.1, 20, 20);
+        glPopMatrix();
+    }
+    
+
+}
+
+void drawHead(){
+    float size=20;
+    GLfloat white[] = {1,1,1,0};
+    GLfloat black[] = {0,0,0,0};
+    GLfloat red[] = {1,0,0,0};              // red
+    GLfloat green[] = {0,1,0,0};             // green
+    GLfloat purple[] = {1,0,1,0};	    // purple
+    double scale = 3.0;
     
     glPushMatrix();
     glTranslatef(0, 5, 0);
@@ -486,46 +499,10 @@ void display( void )
     glutSolidSphere(.1, 20, 30);
     glPopMatrix();
     
-    //Robot viewpoint
+    
+    createLamp();
+    
 
-    
-    
-    
-    //Create Light
-    if (lamp) {
-        glPushMatrix();
-        GLfloat yellow[] {1,1,0,0};
-        //set spot light info
-        glLightf(GL_LIGHT2, GL_LINEAR_ATTENUATION, .1);
-        glLightfv(GL_LIGHT2, GL_DIFFUSE, green);
-        glLightfv(GL_LIGHT2, GL_SPECULAR, green);
-        GLfloat spot_direction[] = {0,0,1};
-        GLfloat spot_position[] = {0, 0, 0,1};
-        glTranslatef(0, .8, .7);
-        glLightfv(GL_LIGHT2, GL_POSITION, spot_position);
-        glLightfv(GL_LIGHT2, GL_SPOT_DIRECTION, spot_direction);
-        glLightf(GL_LIGHT2, GL_SPOT_CUTOFF, 30.0);
-        glColor3f(0, 1, 0);
-        glPushAttrib(GL_LIGHTING_BIT);
-        glDisable(GL_LIGHTING);
-        glutSolidSphere(.1, 20, 20);
-        glEnable(GL_LIGHTING);
-        glPopAttrib();
-
-        glPopMatrix();
-    }
-    if (!lamp) {
-        glPushMatrix();
-        glTranslatef(0, .8, .7);
-        glMaterialfv(GL_FRONT, GL_AMBIENT, black);
-        glMaterialfv(GL_FRONT, GL_DIFFUSE, black);
-        glMaterialfv(GL_FRONT, GL_SPECULAR, black);
-        glMateriali(GL_FRONT,GL_SHININESS,0);
-        glutSolidSphere(.1, 20, 20);
-        glPopMatrix();
-    }
-    
-    
     //draw trunk Shoulder
     glPushMatrix();
     
@@ -536,19 +513,19 @@ void display( void )
     glScalef(.2, .2, .8);
     drawCube();
     
-
+    
     //draw trunk forearm
     glPushMatrix();
     
     //1
     glTranslatef(0, 0, 1);
     glRotatef(trunk2Rot, 1, 0, 0);
-
+    
     glPushMatrix();
     glScalef(.8, .8, 1);
     drawCube();
     glPopMatrix();
-
+    
     
     
     //draw trunk hand
@@ -566,60 +543,195 @@ void display( void )
     
     
     
-
+    
     //End Head assembly
     glPopMatrix();
+
+}
+
+void drawRobot(){
+    float size=20;
+    GLfloat white[] = {1,1,1,0};
+    GLfloat black[] = {0,0,0,0};
+    GLfloat red[] = {1,0,0,0};              // red
+    GLfloat green[] = {0,1,0,0};             // green
+    GLfloat purple[] = {1,0,1,0};	    // purple
+    double scale = 3.0;
+    
+    glPushMatrix();
+    glScalef(scale, scale, scale);
+    glTranslatef(robotX, 0, robotY);
+    
+    //body
+    glPushMatrix();
+    glTranslatef(0, 3, 0);
+    drawCube();
+    glPopMatrix();
+    
+    //left leg
+    glPushMatrix();
+    glTranslatef(-.5, 1, 0);
+    glScalef(.3, 1, .3);
+    drawCube();
+    glPopMatrix();
+    
+    // Right leg
+    glPushMatrix();
+    glTranslatef(.5, 1, 0);
+    glScalef(.3, 1, .3);
+    drawCube();
+    glPopMatrix();
+    
+    // Head Assembly
+    drawHead();
+    
     
     
     
     
     glPopMatrix();
+
+}
+
+int numPoints = 13;
+float points[13][3] = {{40,20,0},
+                        {35,18,0},
+                        {30, 16,0},
+                        {27,15,5},
+                        {20,12,10},
+                        {18,8,15},
+                        {0,4,5},
+                        {-5,5,5},
+                        {-5, 7, -5},
+                        {-4, 9 , -8},
+                        {0, 12, -7},
+                        {5,  17, -2},
+                        {10, 20, 0}};
+
+void drawCurve(int startPoint) {
+    if (startPoint<0 || startPoint+2>=numPoints)
+        return;
+    
+    float coeff[3][4];
+    float basisMatrix[4][4] = {
+        {-1,  3, -3, 1},
+        { 3, -6,  3, 0},
+        {-3,  3,  0, 0},
+        { 1,  0,  0, 0}};
+    /*  compute coefficients for the x,y, and z cubic polynomials */
+    for (int d=0; d<3; d++) { // compute for dimension x, y, and z
+        for (int i=0; i< 4; i++) { // compute coeff[d][i]
+            coeff[d][i]=0;
+            for (int j=0;j<4;j++) {
+                coeff[d][i] += basisMatrix[i][j] * points[j+startPoint][d];
+            }
+        }
+    }
+    
+    /*  approximate the curve by a line strip through sample points	*/
+//    glColor3f(1, 1, 0);
+    glLineWidth(3);
+    glBegin(GL_LINE_STRIP);
+
+
+    float val[3];
+    float t=0;
+    while(t<1) {
+        /* TODO: compute X(t), Y(t), and Z(T) and create openGL vertex */
+        float polyVal[3];
+        for (int i=0;i<3;i++) {
+            polyVal[i] = coeff[i][0]*t*t*t + coeff[i][1]*t*t + coeff[i][2]*t + coeff[i][3];
+        }
+        glVertex3f(polyVal[0], polyVal[1], polyVal[2]);
+        t += 1.0/numSamples;
+        
+    }
+    /* the curve ends at a control point when t=1  				*/
+    /* because the increment 1.0/numSamples  has finite precision	*/
+    /* t probably won't hit 1.0 exactly, so we force it			*/
+    
+    glVertex3f(points[startPoint+3][0],points[startPoint+3][1],points[startPoint+3][2]);
+    glEnd();
+    
+}
+
+void coasterCam(int startPoint){
+    if (startPoint<0 || startPoint+2>=numPoints)
+        return;
+    
+    float coeff[3][4];
+    float basisMatrix[4][4] = {
+        {-1,  3, -3, 1},
+        { 3, -6,  3, 0},
+        {-3,  3,  0, 0},
+        { 1,  0,  0, 0}};
+    /*  compute coefficients for the x,y, and z cubic polynomials */
+    for (int d=0; d<3; d++) { // compute for dimension x, y, and z
+        for (int i=0; i< 4; i++) { // compute coeff[d][i]
+            coeff[d][i]=0;
+            for (int j=0;j<4;j++) {
+                coeff[d][i] += basisMatrix[i][j] * points[j+startPoint][d];
+            }
+        }
+    }
+    
+    /*  approximate the curve by a line strip through sample points	*/
+    //    glColor3f(1, 1, 0);
+
+
+
+    float val[3];
+    float t=coasterPosition;
+    float e = 1;
+        /* TODO: compute X(t), Y(t), and Z(T) and create openGL vertex */
+    float polyVal[3];
+    float lookVal[3];
+    for (int i=0;i<3;i++) {
+        polyVal[i] = coeff[i][0]*t*t*t + coeff[i][1]*t*t + coeff[i][2]*t + coeff[i][3];
+        lookVal[i] = 3 *coeff[i][0]*(t+e)*(t+e) + 2*coeff[i][1]*(t+e) + coeff[i][2];
+    }
+    gluLookAt(polyVal[0], polyVal[1], polyVal[2],
+              lookVal[0], lookVal[1], lookVal[2],
+              0, 1, 0);
+    t += 1.0/numSamples;
+        
+
+    /* the curve ends at a control point when t=1  				*/
+    /* because the increment 1.0/numSamples  has finite precision	*/
+    /* t probably won't hit 1.0 exactly, so we force it			*/
+
+}
+
+
+void display( void )
+{
+    GLenum glErr = glGetError();
+    if (glErr != GL_NO_ERROR){
+        cout << "glError: " << gluErrorString(glErr) << endl;
+    }
     
     
-//    // draw a red triangle
-//    glMaterialfv(GL_FRONT, GL_DIFFUSE, red);
-//    glMaterialfv(GL_FRONT, GL_SPECULAR, red);
-//    glMateriali(GL_FRONT,GL_SHININESS,0);
-//    
-//    
-//    drawCube();
-//    
-////    glColor3f(0, 0, 1);
-//    
-//    glBegin(GL_TRIANGLES);
-//    glVertex3f(-3,1,-8);
-//    glVertex3f(3,1,-10);
-//    glVertex3f(0,4,-9);
-//    glEnd();
-//    
-//    glNormal3f(0,1,0);
-//    
-//    
-//    // draw a green triangle
-//    glMaterialfv(GL_FRONT, GL_AMBIENT, green);
-//    glMaterialfv(GL_FRONT, GL_DIFFUSE, green);
-//    glMaterialfv(GL_FRONT, GL_SPECULAR, green);
-//    glMateriali(GL_FRONT,GL_SHININESS,0);
-//    
-////    glColor3f(0.1, 0.3, 0.2);
-//    
-//    glBegin(GL_TRIANGLES);
-//    glVertex3f(-10,1,-3);
-//    glVertex3f(-6,1,-4);
-//    glVertex3f(-2,4,-2);
-//    glEnd();
-//    
-//    // draw Sphere
-//    glMaterialfv(GL_FRONT, GL_AMBIENT, purple);
-//    glMaterialfv(GL_FRONT, GL_DIFFUSE, purple);
-//    glMaterialfv(GL_FRONT, GL_SPECULAR, purple);
-//    glMateriali(GL_FRONT,GL_SHININESS,50);
-////    glColor3f(0.6, 0.2, 0.8);
+    // clear buffers
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     
-//    glPushMatrix();
-//    glTranslatef(0, 5, 0);
-//    glutSolidSphere(2,100,100);
-//    glPopMatrix();
+    // reset modelview matrix for viewpoint (0,0,5) and save
+    glLoadIdentity();
+    
+    initCamera();
+    
+    glColor3f(1, 1, 0);
+    for (int i=0; i<numPoints; ++i) {
+        drawCurve(3*i);
+    }
+
+    
+    glPushMatrix();
+    
+    drawFloor();
+    
+    drawRobot();
+    
+
     
     glPopMatrix();
     glutSwapBuffers();
