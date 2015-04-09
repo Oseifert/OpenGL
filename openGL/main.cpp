@@ -8,12 +8,15 @@
 #include <glut/glut.h>
 #include <math.h>
 #include "SOIL.h"
+#include <vector>
+
 
 #define MAX_NO_TEXTURES 1
 #define MAX_FILE_NAME 512
 //
 char textureFileNameWithPath[MAX_FILE_NAME];
 GLuint textureIds[MAX_NO_TEXTURES];
+
 
 
 using namespace std;
@@ -35,8 +38,28 @@ float robotY = 0;
 float trunk1Rot = 0;
 float trunk2Rot = 0;
 float trunk3Rot = 0;
-float numSamples = 10;
-float coasterPosition = 0;
+int numSamples = 10;
+int coasterPosition = 0;
+bool laser;
+double laserDist = 0;
+
+
+int numPoints = 13;
+float points[13][3] = {{40,20,0},
+    {35,18,0},
+    {30, 16,0},
+    {27,15,5},
+    {20,12,10},
+    {18,8,15},
+    {0,4,5},
+    {-5,5,5},
+    {-5, 7, -5},
+    {-4, 9 , -8},
+    {0, 12, -7},
+    {5,  17, -2},
+    {10, 20, 0}};
+int samplePos=0;
+float samples[10*13][3] = {};
 
 bool fog = false;
 bool coasterView = false;
@@ -46,6 +69,7 @@ bool ambient = true;
 bool point = true;
 void drawCube();
 bool LoadGLTextures(char* fname);
+void drawSkybox();
 
 // camera rotation parameters
 float phi=0;
@@ -55,7 +79,8 @@ enum{
     OPTIONS_AMBIENT,
     OPTIONS_POINT,
     OPTIONS_HELP,
-    OPTIONS_FOG
+    OPTIONS_FOG,
+    OPTIONS_LASER
 };
 
 
@@ -103,7 +128,10 @@ void menu_func(int value){
         case OPTIONS_HELP:
             help();
             break;
-            
+        case OPTIONS_LASER:
+            laserDist=0;
+            laser=true;
+            break;
         default:
             break;
     }
@@ -117,6 +145,7 @@ int make_menu(){
     glutAddMenuEntry("Toggle Ambient Ligting", OPTIONS_AMBIENT);
     glutAddMenuEntry("Toggle Point Lighting", OPTIONS_POINT);
     glutAddMenuEntry("Toggle Fog", OPTIONS_FOG);
+    glutAddMenuEntry("LASERRRR", OPTIONS_LASER);
     glutAddMenuEntry("Help", OPTIONS_HELP);
     
     glutAttachMenu(GLUT_RIGHT_BUTTON);
@@ -149,6 +178,8 @@ void help()
     m/M                   move trunk at wrist\n\
     v                     toggle on/off the robo-lamp\n\
     c                     switch to 1st/3rd person view\n\
+    r                     enter coaster view\n\
+    t/T                   move coaster forward/back\n\
     \n\
     "
         << endl;
@@ -191,13 +222,16 @@ void init(void)
     glLightfv(GL_LIGHT0, GL_DIFFUSE, white);
     glLightfv(GL_LIGHT0, GL_SPECULAR, white);
 
+    //drawSkybox();
+
+    
     LoadGLTextures("/Users/jarthur/Desktop/project2/openGL/OpenGL/openGL/GL-Symbol-9.png");
 
 
     
     // clear colors
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    
+    glClearStencil(0.0);
     // enabling/disabling opengl features
     glEnable(GL_DEPTH_TEST);
 }
@@ -339,7 +373,16 @@ void keyboard(unsigned char key, int x, int y){
             coasterView = !coasterView;
             break;
         case 't':
-            coasterPosition+=.05;
+            if (coasterPosition < 39) {
+                ++coasterPosition;
+                cerr<<coasterPosition<<endl;
+            }
+            break;
+        case 'T':
+            if (coasterPosition>0) {
+                --coasterPosition;
+            }
+            break;
         default:
             break;
     }
@@ -355,14 +398,14 @@ void reshape(int width, int height)
 }
 
 
-void drawFloor(){
+void drawFloor(bool blend){
+    
     
     float size=20;
-    GLfloat white[] = {1,1,1,0};
-    GLfloat black[] = {0,0,0,0};
-    GLfloat red[] = {1,0,0,0};              // red
-    GLfloat green[] = {0,1,0,0};             // green
-    GLfloat purple[] = {1,0,1,0};	    // purple
+
+    GLfloat white[] = {1,1,1,.5};
+    GLfloat black[] = {0,0,0,.5};
+    
     
     int numCheckers = 10;
     double checkerWidth = 30;
@@ -414,28 +457,37 @@ void initCamera(){
     
     double scale =3.0;
     
-    if (!roboView) {
-        gluLookAt(transX,10+transY,15+transZ,transX+x,transY+y,transZ-z,0,1,0);
-    }
-    
-    
-    if (roboView) {
-        double theta = headShake*M_PI/180;
-        double phi = (90 -(headRot-25))*M_PI/180;
-        GLdouble camr = 1*scale;
-        GLdouble viewr = 2*scale;
-        
-        
-        GLdouble camx = (robotX*scale) + camr*(sin(phi)*sin(theta));
-        GLdouble camy = 5*scale - (camr*cos(phi));
-        GLdouble camz = (robotY*scale) + (camr*cos(theta)*sin(phi));
-        GLdouble viewx = (robotX*scale) + viewr*sin(theta)*sin(phi);
-        GLdouble viewy = 5*scale-(viewr*cos(phi));
-        GLdouble viewz = (robotY*scale) + (viewr*cos(theta)*sin(phi));
-        
-        gluLookAt(camx, camy, camz,
-                  viewx, viewy, viewz,
+    if(coasterView){
+        gluLookAt(samples[coasterPosition][0], samples[coasterPosition][1], samples[coasterPosition][2],
+                  samples[coasterPosition+1][0], samples[coasterPosition+1][1], samples[coasterPosition+1][2],
                   0, 1, 0);
+    }
+    else{
+        if (!roboView) {
+            gluLookAt(transX,10+transY,15+transZ,transX+x,transY+y,transZ-z,0,1,0);
+            return;
+        }
+        
+        
+        if (roboView) {
+            double theta = headShake*M_PI/180;
+            double phi = (90 -(headRot-25))*M_PI/180;
+            GLdouble camr = 1*scale;
+            GLdouble viewr = 2*scale;
+            
+            
+            GLdouble camx = (robotX*scale) + camr*(sin(phi)*sin(theta));
+            GLdouble camy = 5*scale - (camr*cos(phi));
+            GLdouble camz = (robotY*scale) + (camr*cos(theta)*sin(phi));
+            GLdouble viewx = (robotX*scale) + viewr*sin(theta)*sin(phi);
+            GLdouble viewy = 5*scale-(viewr*cos(phi));
+            GLdouble viewz = (robotY*scale) + (viewr*cos(theta)*sin(phi));
+            
+            gluLookAt(camx, camy, camz,
+                      viewx, viewy, viewz,
+                      0, 1, 0);
+            return;
+        }
     }
 }
 
@@ -486,6 +538,18 @@ void createLamp(){
 
 }
 
+void drawLaser(){
+    
+    glPushMatrix();
+    glScalef(.02, .02, 3);
+    glTranslatef(0, 0, laserDist+.5);
+    drawCube();
+
+    glPopMatrix();
+    
+}
+
+
 void drawHead(){
     float size=20;
     GLfloat white[] = {1,1,1,0};
@@ -519,13 +583,24 @@ void drawHead(){
     glPushMatrix();
     glTranslatef(-.5, .2, .8);
     glutSolidSphere(.1, 20, 30);
+    if (laser) {
+        drawLaser();
+    }
     glPopMatrix();
     
+    glMaterialfv(GL_FRONT, GL_AMBIENT, black);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, black);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, black);
+    glMateriali(GL_FRONT,GL_SHININESS,0);
     //right eye
     glPushMatrix();
     glTranslatef(.5, .2, .8);
     glutSolidSphere(.1, 20, 30);
+    if (laser) {
+        drawLaser();
+    }
     glPopMatrix();
+    
     
     
     createLamp();
@@ -574,7 +649,14 @@ void drawHead(){
     
     //End Head assembly
     glPopMatrix();
-
+//    if (laser) {
+//        if (laserDist>3) {
+//            laser=false;
+//        }
+//        else{
+//            laserDist+=.1;
+//        }
+//    }
 }
 
 void drawRobot(){
@@ -585,7 +667,7 @@ void drawRobot(){
     GLfloat green[] = {0,1,0,0};             // green
     GLfloat purple[] = {1,0,1,0};	    // purple
     double scale = 3.0;
-    
+    LoadGLTextures("/Users/jarthur/Desktop/project2/openGL/OpenGL/openGL/GL-Symbol-9.png");
     glPushMatrix();
     glScalef(scale, scale, scale);
     glTranslatef(robotX, 0, robotY);
@@ -623,20 +705,7 @@ void drawRobot(){
 
 }
 
-int numPoints = 13;
-float points[13][3] = {{40,20,0},
-                        {35,18,0},
-                        {30, 16,0},
-                        {27,15,5},
-                        {20,12,10},
-                        {18,8,15},
-                        {0,4,5},
-                        {-5,5,5},
-                        {-5, 7, -5},
-                        {-4, 9 , -8},
-                        {0, 12, -7},
-                        {5,  17, -2},
-                        {10, 20, 0}};
+
 
 void drawCurve(int startPoint) {
     if (startPoint<0 || startPoint+2>=numPoints)
@@ -663,9 +732,9 @@ void drawCurve(int startPoint) {
     glLineWidth(3);
     glBegin(GL_LINE_STRIP);
 
-
     float val[3];
     float t=0;
+    float sample[3];
     while(t<1) {
         /* TODO: compute X(t), Y(t), and Z(T) and create openGL vertex */
         float polyVal[3];
@@ -674,61 +743,68 @@ void drawCurve(int startPoint) {
         }
         glVertex3f(polyVal[0], polyVal[1], polyVal[2]);
         t += 1.0/numSamples;
-        
+        samples[samplePos][0] = polyVal[0];
+        samples[samplePos][1] = polyVal[1];
+        samples[samplePos][2] = polyVal[2];
+        ++samplePos;
     }
     /* the curve ends at a control point when t=1  				*/
     /* because the increment 1.0/numSamples  has finite precision	*/
     /* t probably won't hit 1.0 exactly, so we force it			*/
     
     glVertex3f(points[startPoint+3][0],points[startPoint+3][1],points[startPoint+3][2]);
+    samples[samplePos][0] =points[startPoint+3][0];
+    samples[samplePos][1] =points[startPoint+3][1];
+    samples[samplePos][2] =points[startPoint+3][2];
+ 
+
     glEnd();
-    
 }
-
-void coasterCam(int startPoint){
-    if (startPoint<0 || startPoint+2>=numPoints)
-        return;
-    
-    float coeff[3][4];
-    float basisMatrix[4][4] = {
-        {-1,  3, -3, 1},
-        { 3, -6,  3, 0},
-        {-3,  3,  0, 0},
-        { 1,  0,  0, 0}};
-    /*  compute coefficients for the x,y, and z cubic polynomials */
-    for (int d=0; d<3; d++) { // compute for dimension x, y, and z
-        for (int i=0; i< 4; i++) { // compute coeff[d][i]
-            coeff[d][i]=0;
-            for (int j=0;j<4;j++) {
-                coeff[d][i] += basisMatrix[i][j] * points[j+startPoint][d];
-            }
-        }
-    }
-    
-    /*  approximate the curve by a line strip through sample points	*/
-    //    glColor3f(1, 1, 0);
-    float val[3];
-    float t=coasterPosition- int(coasterPosition);
-    float e = .1;
-        /* TODO: compute X(t), Y(t), and Z(T) and create openGL vertex */
-    float polyVal[3];
-    float lookVal[3];
-    for (int i=0;i<3;i++) {
-        polyVal[i] = coeff[i][0]*t*t*t + coeff[i][1]*t*t + coeff[i][2]*t + coeff[i][3];
-        lookVal[i] = 3 *coeff[i][0]*(t+e)*(t+e) + 2*coeff[i][1]*(t+e) + coeff[i][2];
-    }
-
-    gluLookAt(polyVal[0], polyVal[1], polyVal[2],
-              lookVal[0], lookVal[1], lookVal[2],
-              0, 1, 0);
-    t += 1.0/numSamples;
-        
-
-    /* the curve ends at a control point when t=1  				*/
-    /* because the increment 1.0/numSamples  has finite precision	*/
-    /* t probably won't hit 1.0 exactly, so we force it			*/
-
-}
+//
+//void coasterCam(int startPoint){
+//    if (startPoint<0 || startPoint+2>=numPoints)
+//        return;
+//    
+//    float coeff[3][4];
+//    float basisMatrix[4][4] = {
+//        {-1,  3, -3, 1},
+//        { 3, -6,  3, 0},
+//        {-3,  3,  0, 0},
+//        { 1,  0,  0, 0}};
+//    /*  compute coefficients for the x,y, and z cubic polynomials */
+//    for (int d=0; d<3; d++) { // compute for dimension x, y, and z
+//        for (int i=0; i< 4; i++) { // compute coeff[d][i]
+//            coeff[d][i]=0;
+//            for (int j=0;j<4;j++) {
+//                coeff[d][i] += basisMatrix[i][j] * points[j+startPoint][d];
+//            }
+//        }
+//    }
+//    
+//    /*  approximate the curve by a line strip through sample points	*/
+//    //    glColor3f(1, 1, 0);
+//    float val[3];
+//    float t=coasterPosition- int(coasterPosition);
+//    float e = .1;
+//        /* TODO: compute X(t), Y(t), and Z(T) and create openGL vertex */
+//    float polyVal[3];
+//    float lookVal[3];
+//    for (int i=0;i<3;i++) {
+//        polyVal[i] = coeff[i][0]*t*t*t + coeff[i][1]*t*t + coeff[i][2]*t + coeff[i][3];
+//        lookVal[i] = 3 *coeff[i][0]*(t+e)*(t+e) + 2*coeff[i][1]*(t+e) + coeff[i][2];
+//    }
+//
+//    gluLookAt(polyVal[0], polyVal[1], polyVal[2],
+//              lookVal[0], lookVal[1], lookVal[2],
+//              0, 1, 0);
+//    t += 1.0/numSamples;
+//        
+//
+//    /* the curve ends at a control point when t=1  				*/
+//    /* because the increment 1.0/numSamples  has finite precision	*/
+//    /* t probably won't hit 1.0 exactly, so we force it			*/
+//
+//}
 
 void drawFog(){
     GLfloat fogColor[] = {.5f, .5f,.5f,1};
@@ -754,6 +830,16 @@ bool LoadGLTextures(char* fname)
     return true;
 }
 
+void drawSkybox(){
+    glPushMatrix();
+    glScalef(100, 100, 100);
+    LoadGLTextures("/Users/jarthur/Desktop/project2/openGL/OpenGL/openGL/wpid-universe-wallpaper.png");
+    glEnable(GL_TEXTURE_2D);
+    drawCube();
+    glDisable(GL_TEXTURE_2D);
+    glPopMatrix();
+    
+}
 
 void display( void )
 {
@@ -769,18 +855,19 @@ void display( void )
     // reset modelview matrix for viewpoint (0,0,5) and save
     glLoadIdentity();
     
-    if (!coasterView) {
-        initCamera();
-    }
-    else{
-        coasterCam((3*coasterPosition));
-    }
+    initCamera();
     
+//    else{
+//        coasterCam((3*coasterPosition));
+//    }
+    
+
     glColor3f(1, 1, 0);
+    samplePos = 0;
     for (int i=0; i<numPoints; ++i) {
         drawCurve(3*i);
     }
-
+    
     if (fog) {
         drawFog();
     }
@@ -790,14 +877,82 @@ void display( void )
     
     glPushMatrix();
     
-    drawFloor();
-    
     drawRobot();
     
+    //draw floor to stencil
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_STENCIL_TEST);
+    glStencilFunc(GL_EQUAL,0,3);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    drawFloor(false);
+    glEnable(GL_DEPTH_TEST);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glDisable(GL_CULL_FACE);
+    
+    
+    //draw reflected bot
+    glStencilFunc(GL_EQUAL,1,3);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+    glPushMatrix();
+    glScalef(1,-1,1);
+    drawRobot();
+    glDisable(GL_STENCIL_TEST);
+    glPopMatrix();
+    
+    
+    // draw reflected again but just to stecil buffer
+    glEnable(GL_STENCIL_TEST);
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+    glDisable(GL_DEPTH_TEST);
+    glStencilFunc(GL_EQUAL,1,3);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
+    glPushMatrix();
+    glScalef(1,-1,1);
+    drawRobot();
+    glPopMatrix();
+    glEnable(GL_DEPTH_TEST);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    
+    
+    //draw blended floor
+    glStencilFunc(GL_EQUAL, 2, 3);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //    glDisable(GL_DEPTH_TEST);
+    drawFloor(true);
+    
+    //draw top floor
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+    glStencilFunc(GL_EQUAL, 1, 3);
+    glBegin(GL_QUADS);
+    drawFloor(false);
+    glEnd();
+    
+    //draw bottom floor
+    glStencilFunc(GL_EQUAL, 0, 3);
+    glColor4f(1,0,0,.5);    glBegin(GL_QUADS);
+    drawFloor(false);
+    glEnd();
+    glDisable(GL_STENCIL_TEST);
+    
+    
+    
+    
+//    drawFloor();
+//    
+//    drawRobot();
+    
+    drawSkybox();
 
     
     glPopMatrix();
+    
     glutSwapBuffers();
+
 }
 
 void drawCube () {
@@ -845,7 +1000,16 @@ void drawCube () {
     
 }
 
-
+void idle(){
+    if (laser) {
+        laserDist+=.7;
+        glutPostRedisplay();
+        if (laserDist>4) {
+            laserDist = 0.0;
+            laser=false;
+        }
+    }
+}
 
 int main ( int argc, char** argv )
 {
@@ -861,6 +1025,7 @@ int main ( int argc, char** argv )
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
     glutMouseFunc(mouse);
+    glutIdleFunc		( idle );
     glutMotionFunc(motion);
     glutSpecialFunc(arrow_keys);
     glutMainLoop( );
