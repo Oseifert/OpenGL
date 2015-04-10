@@ -11,7 +11,7 @@
 #include <vector>
 
 
-#define MAX_NO_TEXTURES 1
+#define MAX_NO_TEXTURES 3
 #define MAX_FILE_NAME 512
 //
 char textureFileNameWithPath[MAX_FILE_NAME];
@@ -68,7 +68,7 @@ bool roboView = false;
 bool ambient = true;
 bool point = true;
 void drawCube();
-bool LoadGLTextures(char* fname);
+bool LoadGLTextures(char* fname, int texNum);
 void drawSkybox();
 
 // camera rotation parameters
@@ -222,12 +222,9 @@ void init(void)
     glLightfv(GL_LIGHT0, GL_DIFFUSE, white);
     glLightfv(GL_LIGHT0, GL_SPECULAR, white);
 
-    //drawSkybox();
-
-    
-    LoadGLTextures("/Users/jarthur/Desktop/project2/openGL/OpenGL/openGL/GL-Symbol-9.png");
-
-
+    LoadGLTextures("/Users/jarthur/Desktop/project2/openGL/OpenGL/openGL/wpid-universe-wallpaper.png",0);
+    LoadGLTextures("/Users/jarthur/Desktop/project2/openGL/OpenGL/openGL/GL-Symbol-9.png",1);
+    LoadGLTextures("/Users/jarthur/Desktop/project2/openGL/OpenGL/openGL/help.png", 2);
     
     // clear colors
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -351,10 +348,10 @@ void keyboard(unsigned char key, int x, int y){
             ++trunk2Rot;
             break;
         case 'm':
-            --trunk3Rot;
+            trunk3Rot-=5;
             break;
         case 'M':
-            ++trunk3Rot;
+            trunk3Rot+=5;
             break;
         case 'v':
             if (lamp) {
@@ -503,9 +500,9 @@ void createLamp(){
     //Create Light
     if (lamp) {
         glPushMatrix();
-        GLfloat yellow[] {1,1,0,0};
+//        GLfloat yellow[] {1,1,0,0};
         //set spot light info
-        glLightf(GL_LIGHT2, GL_LINEAR_ATTENUATION, .1);
+        glLightf(GL_LIGHT2, GL_LINEAR_ATTENUATION, 1);
         glLightfv(GL_LIGHT2, GL_DIFFUSE, green);
         glLightfv(GL_LIGHT2, GL_SPECULAR, green);
         GLfloat spot_direction[] = {0,0,1};
@@ -513,7 +510,8 @@ void createLamp(){
         glTranslatef(0, .8, .7);
         glLightfv(GL_LIGHT2, GL_POSITION, spot_position);
         glLightfv(GL_LIGHT2, GL_SPOT_DIRECTION, spot_direction);
-        glLightf(GL_LIGHT2, GL_SPOT_CUTOFF, 30.0);
+        glLightf(GL_LIGHT2, GL_SPOT_CUTOFF, 45.0);
+        
         glColor3f(0, 1, 0);
         glPushAttrib(GL_LIGHTING_BIT);
         glDisable(GL_LIGHTING);
@@ -533,7 +531,6 @@ void createLamp(){
         glutSolidSphere(.1, 20, 20);
         glPopMatrix();
     }
-    
 
 }
 
@@ -612,34 +609,49 @@ void drawHead(){
     glTranslatef(0, 0, 1);
     glRotatef(trunk1Rot, 1, 0, 0);
     glTranslatef(0, 0, .5);
+    glPushMatrix();
     glScalef(.2, .2, .8);
-    drawCube();
-    
-    
-    //draw trunk forearm
-    glPushMatrix();
-    
-    //1
-    glTranslatef(0, 0, 1);
-    glRotatef(trunk2Rot, 1, 0, 0);
-    
-    glPushMatrix();
-    glScalef(.8, .8, 1);
     drawCube();
     glPopMatrix();
     
+    //draw trunk forearm
+
+    
+    //1
+    glPushMatrix();
+    glTranslatef(0, 0, .5);
+    glRotatef(trunk2Rot, 1, 0, 0);
+    glTranslatef(0, 0, .6);
+    glPushMatrix();
+    glScalef(.1, .1, .4);
+    drawCube();
+    glPopMatrix();
+
+    
+
+
+    glPushMatrix();
+    glTranslatef(0, 0, .5);
+    glRotatef(trunk3Rot, 0, 0, 1);
+    glTranslatef(0, 0, 0);
+    glPushMatrix();
+    glScalef(.14, .4, .1);
+    drawCube();
+    glPopMatrix();
+    glPopMatrix();
+    glPopMatrix();
     
     
     //draw trunk hand
-    glPushMatrix();
-    glTranslatef(0, -1.2, 1.1);
-    glPushMatrix();
-    glScalef(.8, 2.5, .1);
-    drawCube();
-    glPopMatrix();
-    glPopMatrix();
-    
-    glPopMatrix();
+//    glPushMatrix();
+//    glTranslatef(0, -1.2, 1.1);
+////    glPushMatrix();
+//    glScalef(.8, 2.5, .1);
+//    drawCube();
+//    
+    //glPopMatrix();
+
+
     //end trunk
     glPopMatrix();
     
@@ -648,14 +660,7 @@ void drawHead(){
     
     //End Head assembly
     glPopMatrix();
-//    if (laser) {
-//        if (laserDist>3) {
-//            laser=false;
-//        }
-//        else{
-//            laserDist+=.1;
-//        }
-//    }
+
 }
 
 void drawRobot(){
@@ -666,7 +671,8 @@ void drawRobot(){
     GLfloat green[] = {0,1,0,0};             // green
     GLfloat purple[] = {1,0,1,0};	    // purple
     double scale = 3.0;
-    LoadGLTextures("/Users/jarthur/Desktop/project2/openGL/OpenGL/openGL/GL-Symbol-9.png");
+    glBindTexture(GL_TEXTURE_2D, textureIds[1]);
+    
     glPushMatrix();
     glScalef(scale, scale, scale);
     glTranslatef(robotX, 0, robotY);
@@ -759,51 +765,7 @@ void drawCurve(int startPoint) {
 
     glEnd();
 }
-//
-//void coasterCam(int startPoint){
-//    if (startPoint<0 || startPoint+2>=numPoints)
-//        return;
-//    
-//    float coeff[3][4];
-//    float basisMatrix[4][4] = {
-//        {-1,  3, -3, 1},
-//        { 3, -6,  3, 0},
-//        {-3,  3,  0, 0},
-//        { 1,  0,  0, 0}};
-//    /*  compute coefficients for the x,y, and z cubic polynomials */
-//    for (int d=0; d<3; d++) { // compute for dimension x, y, and z
-//        for (int i=0; i< 4; i++) { // compute coeff[d][i]
-//            coeff[d][i]=0;
-//            for (int j=0;j<4;j++) {
-//                coeff[d][i] += basisMatrix[i][j] * points[j+startPoint][d];
-//            }
-//        }
-//    }
-//    
-//    /*  approximate the curve by a line strip through sample points	*/
-//    //    glColor3f(1, 1, 0);
-//    float val[3];
-//    float t=coasterPosition- int(coasterPosition);
-//    float e = .1;
-//        /* TODO: compute X(t), Y(t), and Z(T) and create openGL vertex */
-//    float polyVal[3];
-//    float lookVal[3];
-//    for (int i=0;i<3;i++) {
-//        polyVal[i] = coeff[i][0]*t*t*t + coeff[i][1]*t*t + coeff[i][2]*t + coeff[i][3];
-//        lookVal[i] = 3 *coeff[i][0]*(t+e)*(t+e) + 2*coeff[i][1]*(t+e) + coeff[i][2];
-//    }
-//
-//    gluLookAt(polyVal[0], polyVal[1], polyVal[2],
-//              lookVal[0], lookVal[1], lookVal[2],
-//              0, 1, 0);
-//    t += 1.0/numSamples;
-//        
-//
-//    /* the curve ends at a control point when t=1  				*/
-//    /* because the increment 1.0/numSamples  has finite precision	*/
-//    /* t probably won't hit 1.0 exactly, so we force it			*/
-//
-//}
+
 
 void drawFog(){
     GLfloat fogColor[] = {.5f, .5f,.5f,1};
@@ -816,13 +778,13 @@ void drawFog(){
 }
 
 
-bool LoadGLTextures(char* fname)
+bool LoadGLTextures(char* fname, int texNum)
 {
     int textureId = SOIL_load_OGL_texture(fname, SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_INVERT_Y);
     if(textureId == 0)
         return false;
-    
-    glBindTexture(GL_TEXTURE_2D, textureId);
+    textureIds[texNum] = textureId;
+    //glBindTexture(GL_TEXTURE_2D, textureId);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
@@ -831,13 +793,43 @@ bool LoadGLTextures(char* fname)
 
 void drawSkybox(){
     glPushMatrix();
-    glScalef(100, 100, 100);
-    LoadGLTextures("/Users/jarthur/Desktop/project2/openGL/OpenGL/openGL/wpid-universe-wallpaper.png");
+    glScalef(150,150, 150);
+    glBindTexture(GL_TEXTURE_2D, textureIds[0]);
     glEnable(GL_TEXTURE_2D);
     drawCube();
     glDisable(GL_TEXTURE_2D);
     glPopMatrix();
     
+}
+
+void drawHUD(){
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_STENCIL_TEST);
+    glPushMatrix();
+    glLoadIdentity();
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    gluOrtho2D(-1,1,-1,1);
+    
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glColor4f(0,1,0,.5);
+
+    glBegin(GL_QUADS);
+    glVertex2d(-1, 1);
+    glVertex2d(-1, .5);
+    glVertex2d(-.5, .5);
+    glVertex2d(-.5,1);
+    glEnd();
+    
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+    
+    
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
 }
 
 void display( void )
@@ -855,11 +847,6 @@ void display( void )
     glLoadIdentity();
     
     initCamera();
-    
-//    else{
-//        coasterCam((3*coasterPosition));
-//    }
-    
 
     glColor3f(1, 1, 0);
     samplePos = 0;
@@ -938,15 +925,39 @@ void display( void )
     glEnd();
     glDisable(GL_STENCIL_TEST);
     
-    
-    
-    
-//    drawFloor();
-//    
-//    drawRobot();
-    
     drawSkybox();
 
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_STENCIL_TEST);
+    glPushMatrix();
+    glLoadIdentity();
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    gluOrtho2D(-1,1,-1,1);
+    glDisable(GL_BLEND);
+    //glEnable(GL_BLEND);
+    //glDisable(GL_BLEND);
+    
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glColor4f(0,1,0,.5);
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, textureIds[2]);
+    glBegin(GL_QUADS);
+    glTexCoord2f(0.0f, 1.0f);glVertex2d(-1, 1);
+    glTexCoord2f(0.0f, 0.0f);glVertex2d(-1, .5);
+    glTexCoord2f(1.0f, 0.0f);glVertex2d(-.5, .5);
+    glTexCoord2f(1.0f, 1.0f);glVertex2d(-.5,1);
+    glEnd();
+    glDisable(GL_TEXTURE_2D);
+    
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+    
+    
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
     
     glPopMatrix();
     

@@ -45,6 +45,12 @@
 		D81227731AD4F3AD00AB27AC /* stb_image_aug.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stb_image_aug.h; sourceTree = "<group>"; };
 		D81227741AD4F3AD00AB27AC /* stbi_DDS_aug.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stbi_DDS_aug.h; sourceTree = "<group>"; };
 		D81227751AD4F3AD00AB27AC /* stbi_DDS_aug_c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stbi_DDS_aug_c.h; sourceTree = "<group>"; };
+		D8C26F051AD77AC700B93BE4 /* GL-Symbol-9.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "GL-Symbol-9.jpg"; sourceTree = "<group>"; };
+		D8C26F061AD77AC700B93BE4 /* GL-Symbol-9.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "GL-Symbol-9.png"; sourceTree = "<group>"; };
+		D8C26F071AD77AC700B93BE4 /* Laser.mov */ = {isa = PBXFileReference; lastKnownFileType = video.quicktime; path = Laser.mov; sourceTree = "<group>"; };
+		D8C26F081AD77AC700B93BE4 /* wpid-universe-wallpaper.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "wpid-universe-wallpaper.jpg"; sourceTree = "<group>"; };
+		D8C26F091AD77AC700B93BE4 /* wpid-universe-wallpaper.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "wpid-universe-wallpaper.png"; sourceTree = "<group>"; };
+		D8C26F0A1AD7957900B93BE4 /* help.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = help.png; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -83,6 +89,12 @@
 		02D4D2CF1AC2574200D43510 /* openGL */ = {
 			isa = PBXGroup;
 			children = (
+				D8C26F0A1AD7957900B93BE4 /* help.png */,
+				D8C26F051AD77AC700B93BE4 /* GL-Symbol-9.jpg */,
+				D8C26F061AD77AC700B93BE4 /* GL-Symbol-9.png */,
+				D8C26F071AD77AC700B93BE4 /* Laser.mov */,
+				D8C26F081AD77AC700B93BE4 /* wpid-universe-wallpaper.jpg */,
+				D8C26F091AD77AC700B93BE4 /* wpid-universe-wallpaper.png */,
 				02D4D2D01AC2574200D43510 /* main.cpp */,
 				D812276B1AD4F3AD00AB27AC /* SOILArchive */,
 			);
