@@ -27,6 +27,8 @@ void help();
 // window width/height
 int windowWidth=500;
 int windowHeight=500;
+
+// Translation/movement globals
 double transX =0.0;
 double transY = 0.0;
 double transZ = 0.0;
@@ -38,12 +40,13 @@ float robotY = 0;
 float trunk1Rot = 0;
 float trunk2Rot = 0;
 float trunk3Rot = 0;
-int numSamples = 10;
-int coasterPosition = 0;
+
 bool laser;
 double laserDist = 0;
 
-
+//Samples and points for our rollercoaster
+int numSamples = 10;
+int coasterPosition = 0;
 int numPoints = 13;
 float points[13][3] = {{40,20,0},
     {35,18,0},
@@ -60,6 +63,7 @@ float points[13][3] = {{40,20,0},
     {10, 20, 0}};
 int samplePos=0;
 float samples[10*13][3] = {};
+
 
 bool fog = false;
 bool coasterView = false;
@@ -167,8 +171,6 @@ void help()
     a                     move camera in negative x-direction\n\
     e                     move camera in positive z-direction\n\
     q                     move camera in negative z-direction\n\
-    j                     zoom in\n\
-    k                     zoom out\n\
     y/u                   nod head\n\
     o/p                   shake head\n\
     i/k                   move robot in +/- x direction\n\
@@ -418,7 +420,6 @@ void drawFloor(bool blend){
                 glMaterialfv(GL_FRONT, GL_DIFFUSE, black);
                 glMaterialfv(GL_FRONT, GL_SPECULAR, black);
                 glMateriali(GL_FRONT,GL_SHININESS,0);
-                //                glColor3f(0,0,0);
                 
             }
             else{
@@ -426,7 +427,6 @@ void drawFloor(bool blend){
                 glMaterialfv(GL_FRONT, GL_DIFFUSE, white);
                 glMaterialfv(GL_FRONT, GL_SPECULAR, white);
                 glMateriali(GL_FRONT,GL_SHININESS,0);
-                //                glColor3f(1,1,1);
             }
             
             glBegin(GL_QUADS);
@@ -500,7 +500,6 @@ void createLamp(){
     //Create Light
     if (lamp) {
         glPushMatrix();
-//        GLfloat yellow[] {1,1,0,0};
         //set spot light info
         glLightf(GL_LIGHT2, GL_LINEAR_ATTENUATION, 1);
         glLightfv(GL_LIGHT2, GL_DIFFUSE, green);
@@ -604,8 +603,6 @@ void drawHead(){
 
     //draw trunk Shoulder
     glPushMatrix();
-    
-    //1.5
     glTranslatef(0, 0, 1);
     glRotatef(trunk1Rot, 1, 0, 0);
     glTranslatef(0, 0, .5);
@@ -615,9 +612,6 @@ void drawHead(){
     glPopMatrix();
     
     //draw trunk forearm
-
-    
-    //1
     glPushMatrix();
     glTranslatef(0, 0, .5);
     glRotatef(trunk2Rot, 1, 0, 0);
@@ -629,7 +623,7 @@ void drawHead(){
 
     
 
-
+    //draw trunk hand
     glPushMatrix();
     glTranslatef(0, 0, .5);
     glRotatef(trunk3Rot, 0, 0, 1);
@@ -641,15 +635,6 @@ void drawHead(){
     glPopMatrix();
     glPopMatrix();
     
-    
-    //draw trunk hand
-//    glPushMatrix();
-//    glTranslatef(0, -1.2, 1.1);
-////    glPushMatrix();
-//    glScalef(.8, 2.5, .1);
-//    drawCube();
-//    
-    //glPopMatrix();
 
 
     //end trunk
@@ -701,11 +686,7 @@ void drawRobot(){
     
     // Head Assembly
     drawHead();
-    
-    
-    
-    
-    
+
     glPopMatrix();
 
 }
@@ -784,7 +765,6 @@ bool LoadGLTextures(char* fname, int texNum)
     if(textureId == 0)
         return false;
     textureIds[texNum] = textureId;
-    //glBindTexture(GL_TEXTURE_2D, textureId);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
@@ -935,10 +915,8 @@ void display( void )
     glPushMatrix();
     glLoadIdentity();
     gluOrtho2D(-1,1,-1,1);
-    glDisable(GL_BLEND);
-    //glEnable(GL_BLEND);
-    //glDisable(GL_BLEND);
-    
+
+//    glEnable(GL_BLEND);
     //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glColor4f(0,1,0,.5);
     glEnable(GL_TEXTURE_2D);
