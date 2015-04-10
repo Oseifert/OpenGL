@@ -14,9 +14,9 @@
 #define MAX_NO_TEXTURES 3
 #define MAX_FILE_NAME 512
 //
-char textureFileNameWithPath[MAX_FILE_NAME];
+char textureFileNameWithPath[3][MAX_FILE_NAME];
 GLuint textureIds[MAX_NO_TEXTURES];
-
+bool makeFnameWithPath(char* fname, char* pathName, char* fnameWithPath);
 
 
 using namespace std;
@@ -224,10 +224,9 @@ void init(void)
     glLightfv(GL_LIGHT0, GL_DIFFUSE, white);
     glLightfv(GL_LIGHT0, GL_SPECULAR, white);
 
-    LoadGLTextures("/Users/jarthur/Desktop/project2/openGL/OpenGL/openGL/wpid-universe-wallpaper.png",0);
-    LoadGLTextures("/Users/jarthur/Desktop/project2/openGL/OpenGL/openGL/GL-Symbol-9.png",1);
-    LoadGLTextures("/Users/jarthur/Desktop/project2/openGL/OpenGL/openGL/help.png", 2);
-    
+    LoadGLTextures(textureFileNameWithPath[0],0);
+    LoadGLTextures(textureFileNameWithPath[1],1);
+    LoadGLTextures(textureFileNameWithPath[2], 2);
     // clear colors
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClearStencil(0.0);
@@ -999,8 +998,57 @@ void idle(){
     }
 }
 
+
+bool makeFnameWithPath(char* fname, char* pathName, char* fnameWithPath)
+{
+    
+    int last = -1;
+    for (int i = 0; last==-1 && i < MAX_FILE_NAME; ++i) {
+        if (pathName[i] == 0) {
+            last=i;
+            if (i>0 && pathName[i-1]!='/') {
+                fnameWithPath[i]='/';
+                last ++;
+            }
+            
+        }
+        else {
+            fnameWithPath[i]=pathName[i];
+        }
+    }
+    
+    // if the pathname exceeds our space bound we return false
+    // we could make this more robust by dynamically allocating the right amout of space!
+    if (last == -1) {
+        return false;
+    }
+    
+    bool done=false;
+    
+    for (int i=0; !done && i<MAX_FILE_NAME; ++i) {
+        fnameWithPath[last+i] = fname[i];
+        if (fname[i]==0) {
+            done=true;
+        }
+    }
+    return done;
+}
+
 int main ( int argc, char** argv )
 {
+    
+
+    
+    char* fname[3] = {"OpenGL/wpid-universe-wallpaper.png","OpenGL/GL-Symbol-9.png","OpenGL/help.png"};
+
+    
+    if (argc==2) {
+        
+        makeFnameWithPath(fname[0], argv[1], textureFileNameWithPath[0]);
+        makeFnameWithPath(fname[1], argv[1], textureFileNameWithPath[1]);
+        makeFnameWithPath(fname[2], argv[1], textureFileNameWithPath[2]);
+        cerr<<textureFileNameWithPath[0]<<endl;
+    }
     
     glutInit(&argc, argv );
     glutInitDisplayMode ( GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA | GLUT_STENCIL ); // Display Mode
