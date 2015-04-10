@@ -375,7 +375,6 @@ void keyboard(unsigned char key, int x, int y){
         case 't':
             if (coasterPosition < 39) {
                 ++coasterPosition;
-                cerr<<coasterPosition<<endl;
             }
             break;
         case 'T':
